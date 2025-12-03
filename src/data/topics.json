@@ -1,0 +1,150 @@
+{
+  "topics": [
+    {
+      "category": "Animals",
+      "words": [
+        ["Dog", "Cat", "Fish", "Bird"],
+        ["Lion", "Tiger", "Bear", "Wolf"],
+        ["Elephant", "Giraffe", "Zebra", "Rhino"],
+        ["Monkey", "Gorilla", "Chimpanzee", "Orangutan"]
+      ]
+    },
+    {
+      "category": "Food",
+      "words": [
+        ["Pizza", "Burger", "Pasta", "Salad"],
+        ["Apple", "Banana", "Orange", "Grape"],
+        ["Chicken", "Beef", "Pork", "Fish"],
+        ["Cake", "Cookie", "Ice Cream", "Chocolate"]
+      ]
+    },
+    {
+      "category": "Sports",
+      "words": [
+        ["Football", "Basketball", "Tennis", "Golf"],
+        ["Swimming", "Running", "Cycling", "Boxing"],
+        ["Soccer", "Baseball", "Hockey", "Volleyball"],
+        ["Skiing", "Surfing", "Climbing", "Wrestling"]
+      ]
+    },
+    {
+      "category": "Movies",
+      "words": [
+        ["Action", "Comedy", "Drama", "Horror"],
+        ["Superhero", "Romance", "Thriller", "Sci-Fi"],
+        ["Animation", "Documentary", "Musical", "Western"],
+        ["Fantasy", "Adventure", "Mystery", "Crime"]
+      ]
+    },
+    {
+      "category": "Technology",
+      "words": [
+        ["Phone", "Computer", "Tablet", "Watch"],
+        ["Internet", "WiFi", "Bluetooth", "GPS"],
+        ["Camera", "Speaker", "Headphones", "Keyboard"],
+        ["Software", "App", "Website", "Game"]
+      ]
+    },
+    {
+      "category": "Travel",
+      "words": [
+        ["Beach", "Mountain", "City", "Forest"],
+        ["Hotel", "Airport", "Train", "Car"],
+        ["Passport", "Luggage", "Map", "Camera"],
+        ["Vacation", "Adventure", "Cruise", "Safari"]
+      ]
+    },
+    {
+      "category": "Colors",
+      "words": [
+        ["Red", "Blue", "Green", "Yellow"],
+        ["Purple", "Orange", "Pink", "Brown"],
+        ["Black", "White", "Gray", "Silver"],
+        ["Gold", "Turquoise", "Violet", "Indigo"]
+      ]
+    },
+    {
+      "category": "Weather",
+      "words": [
+        ["Sunny", "Rainy", "Cloudy", "Snowy"],
+        ["Windy", "Stormy", "Foggy", "Hot"],
+        ["Cold", "Humid", "Dry", "Freezing"],
+        ["Thunder", "Lightning", "Rainbow", "Hail"]
+      ]
+    },
+    {
+      "category": "School",
+      "words": [
+        ["Teacher", "Student", "Book", "Desk"],
+        ["Math", "Science", "English", "History"],
+        ["Pencil", "Paper", "Computer", "Board"],
+        ["Test", "Homework", "Project", "Grade"]
+      ]
+    },
+    {
+      "category": "Home",
+      "words": [
+        ["Kitchen", "Bedroom", "Bathroom", "Living Room"],
+        ["Sofa", "Table", "Chair", "Bed"],
+        ["TV", "Refrigerator", "Stove", "Microwave"],
+        ["Door", "Window", "Lamp", "Carpet"]
+      ]
+    }
+  ],
+  "filipinoTopics": [
+    {
+      "category": "Pagkaing Pinoy",
+      "words": [
+        ["Adobo", "Sinigang", "Lechon", "Kare-kare"],
+        ["Lumpia", "Pancit", "Bibingka", "Halo-halo"],
+        ["Sisig", "Bulalo", "Tinola", "Menudo"],
+        ["Balut", "Isaw", "Kwek-kwek", "Taho"]
+      ]
+    },
+    {
+      "category": "Artista",
+      "words": [
+        ["Sarah G", "Vice Ganda", "Coco Martin", "Angel Locsin"],
+        ["John Lloyd", "Bea Alonzo", "Kathryn", "Daniel"],
+        ["Maine", "Alden", "Piolo", "Judy Ann"],
+        ["Dolphy", "Nora Aunor", "Fernando Poe", "Vilma Santos"]
+      ]
+    },
+    {
+      "category": "Lugar sa Pilipinas",
+      "words": [
+        ["Boracay", "Palawan", "Baguio", "Cebu"],
+        ["Bohol", "Siargao", "Vigan", "Batanes"],
+        ["Mayon", "Chocolate Hills", "Intramuros", "Rizal Park"],
+        ["Tagaytay", "La Union", "Sagada", "Camiguin"]
+      ]
+    },
+    {
+      "category": "Salitang Pinoy",
+      "words": [
+        ["Kilig", "Gigil", "Tampo", "Pasalip"],
+        ["Diskarte", "Pakikipagkapwa", "Bayanihan", "Utang na loob"],
+        ["Pakbet", "Torpe", "Lagay", "Sobra"],
+        ["Kulit", "Gulo", "Sana all", "Petmalu"]
+      ]
+    },
+    {
+      "category": "TV Shows",
+      "words": [
+        ["Eat Bulaga", "Showtime", "ASAP", "Wowowin"],
+        ["FPJ's Ang Probinsyano", "Maalaala Mo Kaya", "Magpahanggang Wakas", "Kadenang Ginto"],
+        ["Pepito Manaloto", "Home Sweetie Home", "Goin' Bulilit", "Bubble Gang"],
+        ["Jessica Soho", "24 Oras", "TV Patrol", "Rated K"]
+      ]
+    },
+    {
+      "category": "Mga Hayop",
+      "words": [
+        ["Aso", "Pusa", "Manok", "Baboy"],
+        ["Kalabaw", "Kambing", "Ibon", "Isda"],
+        ["Tarsier", "Tamaraw", "Dugong", "Pawikan"],
+        ["Agila", "Maya", "Tikbalang", "Kapre"]
+      ]
+    }
+  ]
+}
