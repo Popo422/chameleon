@@ -4,6 +4,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { RotateCcw } from 'lucide-react';
 
 import { useGameState } from './hooks/useGameState';
+import { useSounds } from './hooks/useSounds';
 import GameSetup from './components/GameSetup';
 import PlayerIndicator from './components/PlayerIndicator';
 import ChameleonIcon from './components/ChameleonIcon';
@@ -15,6 +16,7 @@ import WordBoardModal from './components/WordBoardModal';
 
 function App() {
   const { gameState, initializeGame, nextPlayer, previousPlayer, revealForCurrentPlayer, startDiscussion, reviewRoles, returnToSummary, toggleBoardView, resetGame, toggleFilipino } = useGameState();
+  const { playClickSound, playSuccessSound } = useSounds();
   
   const handleLongPress = () => {
     if (gameState.isRevealed) return;
@@ -27,6 +29,7 @@ function App() {
   };
 
   const handleNextPlayer = () => {
+    playClickSound();
     nextPlayer();
     toast.success('Passed to next player', {
       duration: 1500,
@@ -35,6 +38,7 @@ function App() {
   };
 
   const handleReset = () => {
+    playClickSound();
     resetGame();
     toast.success('Game reset!', {
       duration: 1500,
@@ -43,6 +47,7 @@ function App() {
   };
 
   const handleStartDiscussion = () => {
+    playSuccessSound();
     startDiscussion();
     toast.success('Discussion phase started!', {
       duration: 2000,
@@ -51,6 +56,7 @@ function App() {
   };
 
   const handleReviewRoles = () => {
+    playClickSound();
     reviewRoles();
     toast.success('Back to role review', {
       duration: 1500,

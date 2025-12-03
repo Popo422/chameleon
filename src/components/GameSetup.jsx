@@ -1,11 +1,24 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSounds } from '../hooks/useSounds';
 
 const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
   const [playerCount, setPlayerCount] = useState(4);
+  const { playClickSound, playSuccessSound } = useSounds();
 
   const handleStart = () => {
+    playSuccessSound();
     onStartGame(playerCount);
+  };
+
+  const handlePlayerSelect = (num) => {
+    playClickSound();
+    setPlayerCount(num);
+  };
+
+  const handleFilipinoToggle = () => {
+    playClickSound();
+    onToggleFilipino();
   };
 
   return (
@@ -27,7 +40,7 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
           
           <motion.button
             className={`filipino-flag-btn ${isFilipino ? 'active' : ''}`}
-            onClick={onToggleFilipino}
+            onClick={handleFilipinoToggle}
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
@@ -81,7 +94,7 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
               <motion.button
                 key={num}
                 className={`player-btn ${playerCount === num ? 'active' : ''}`}
-                onClick={() => setPlayerCount(num)}
+                onClick={() => handlePlayerSelect(num)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >

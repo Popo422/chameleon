@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useSounds } from '../hooks/useSounds';
 
 const ChameleonIcon = ({ onLongPress, disabled = false }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [pressProgress, setPressProgress] = useState(0);
   const timeoutRef = useRef(null);
   const intervalRef = useRef(null);
+  const { playRevealSound } = useSounds();
 
   const handlePressStart = () => {
     if (disabled) return;
@@ -20,6 +22,7 @@ const ChameleonIcon = ({ onLongPress, disabled = false }) => {
       
       if (progress >= 100) {
         clearInterval(intervalRef.current);
+        playRevealSound();
         onLongPress();
         setIsPressed(false);
         setPressProgress(0);
