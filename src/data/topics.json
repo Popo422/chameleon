@@ -145,6 +145,33 @@
         ["Tarsier", "Tamaraw", "Dugong", "Pawikan"],
         ["Agila", "Maya", "Tikbalang", "Kapre"]
       ]
+    },
+    {
+      "category": "OPM Bands",
+      "words": [
+        ["Eraserheads", "Parokya ni Edgar", "Rivermaya", "Bamboo"],
+        ["Ben&Ben", "December Avenue", "Moira", "This Band"],
+        ["Kamikazee", "Sandwich", "Spongecola", "Callalily"],
+        ["Silent Sanctuary", "Mayonnaise", "Hale", "6cyclemind"]
+      ]
+    },
+    {
+      "category": "YouTube/TikTok Stars",
+      "words": [
+        ["Cong TV", "Alex Gonzaga", "Mimiyuuuh", "Zeinab Harake"],
+        ["Ivana Alawi", "Ranz Kyle", "Niana", "Wil Dasovich"],
+        ["Lloyd Cadena", "Makagago", "Ry Velasco", "Bretman Rock"],
+        ["Donnalyn", "Viy Cortez", "Jamill", "Team Payaman"]
+      ]
+    },
+    {
+      "category": "Teleserye",
+      "words": [
+        ["Probinsyano", "Darna", "Maria Clara at Ibarra", "Dirty Linen"],
+        ["Encantadia", "Mulawin", "Marina", "Dyesebel"],
+        ["Kadenang Ginto", "Pangako Sa'yo", "Pepito Manaloto", "Rhodora X"],
+        ["Batang Quiapo", "The Iron Heart", "Wildflower", "2 Good 2 Be True"]
+      ]
     }
   ]
 }

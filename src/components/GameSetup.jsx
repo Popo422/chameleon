@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSounds } from '../hooks/useSounds';
+import topicsData from '../data/topics.json';
 
 const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
   const [playerCount, setPlayerCount] = useState(4);
+  const [selectedTopic, setSelectedTopic] = useState(null);
   const { playClickSound, playSuccessSound } = useSounds();
+
+  const availableTopics = isFilipino ? topicsData.filipinoTopics : topicsData.topics;
 
   const handleStart = () => {
     playSuccessSound();
-    onStartGame(playerCount);
+    onStartGame(playerCount, selectedTopic);
   };
 
   const handlePlayerSelect = (num) => {
@@ -18,7 +22,14 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
 
   const handleFilipinoToggle = () => {
     playClickSound();
+    setSelectedTopic(null); // Reset topic selection when language changes
     onToggleFilipino();
+  };
+
+  const handleTopicChange = (e) => {
+    playClickSound();
+    const value = e.target.value;
+    setSelectedTopic(value === 'random' ? null : parseInt(value));
   };
 
   return (
@@ -35,7 +46,8 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            🦎 Chameleon Game
+            <img src="/chameleon.png" alt="Chameleon" className="chameleon-logo" />
+            Chameleon Game
           </motion.h1>
           
           <motion.button
@@ -105,10 +117,31 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
         </motion.div>
 
         <motion.div
+          className="topic-selector"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <h3>{isFilipino ? "Piliin ang Topic" : "Select Topic"}</h3>
+          <select 
+            className="topic-dropdown"
+            value={selectedTopic === null ? 'random' : selectedTopic}
+            onChange={handleTopicChange}
+          >
+            <option value="random">{isFilipino ? "Random Topic" : "Random Topic"}</option>
+            {availableTopics.map((topic, index) => (
+              <option key={index} value={index}>
+                {topic.category}
+              </option>
+            ))}
+          </select>
+        </motion.div>
+
+        <motion.div
           className="game-rules"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.7 }}
         >
           <h4>{isFilipino ? "Paano Maglaro:" : "How to Play:"}</h4>
           <ul>
@@ -125,7 +158,7 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
           onClick={handleStart}
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

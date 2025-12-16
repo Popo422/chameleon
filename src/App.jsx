@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
 import { useGameState } from './hooks/useGameState';
 import { useSounds } from './hooks/useSounds';
+import { useBackgroundMusic } from './hooks/useBackgroundMusic';
 import GameSetup from './components/GameSetup';
 import PlayerIndicator from './components/PlayerIndicator';
 import ChameleonIcon from './components/ChameleonIcon';
@@ -17,6 +18,7 @@ import WordBoardModal from './components/WordBoardModal';
 function App() {
   const { gameState, initializeGame, nextPlayer, previousPlayer, revealForCurrentPlayer, startDiscussion, reviewRoles, returnToSummary, toggleBoardView, resetGame, toggleFilipino } = useGameState();
   const { playClickSound, playSuccessSound } = useSounds();
+  const { isPlaying, toggleMusic, startMusic, stopMusic } = useBackgroundMusic();
   
   const handleLongPress = () => {
     if (gameState.isRevealed) return;
@@ -40,6 +42,7 @@ function App() {
   const handleReset = () => {
     playClickSound();
     resetGame();
+    stopMusic();
     toast.success('Game reset!', {
       duration: 1500,
       position: 'top-center',
@@ -74,11 +77,16 @@ function App() {
     }
   };
 
+  const handleStartGame = (playerCount, selectedTopic) => {
+    initializeGame(playerCount, selectedTopic);
+    startMusic();
+  };
+
   if (!gameState.gameStarted) {
     return (
       <>
         <GameSetup 
-          onStartGame={initializeGame} 
+          onStartGame={handleStartGame} 
           onToggleFilipino={toggleFilipino}
           isFilipino={gameState.isFilipino}
         />
@@ -90,23 +98,26 @@ function App() {
   return (
     <>
       <div className="game-screen">
-        <motion.button
-          className="reset-btn"
-          onClick={handleReset}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{ 
-            position: 'absolute', 
-            top: '1rem', 
-            right: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <RotateCcw size={16} />
-          Reset
-        </motion.button>
+        <div className="game-controls">
+          <motion.button
+            className="music-btn"
+            onClick={toggleMusic}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </motion.button>
+          
+          <motion.button
+            className="reset-btn"
+            onClick={handleReset}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <RotateCcw size={16} />
+            Reset
+          </motion.button>
+        </div>
 
         {/* Show different content based on game phase */}
         {gameState.discussionStarted ? (

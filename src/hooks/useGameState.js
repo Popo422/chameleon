@@ -18,11 +18,16 @@ export const useGameState = () => {
     isFilipino: false
   });
 
-  const initializeGame = useCallback((playerCount) => {
-    // Pick random topic based on language preference
+  const initializeGame = useCallback((playerCount, selectedTopicIndex = null) => {
+    // Pick topic based on language preference
     const topicArray = gameState.isFilipino ? topicsData.filipinoTopics : topicsData.topics;
-    const randomTopicIndex = Math.floor(Math.random() * topicArray.length);
-    const selectedTopic = topicArray[randomTopicIndex];
+    
+    // Use selected topic or pick random
+    const topicIndex = selectedTopicIndex !== null ? 
+      selectedTopicIndex : 
+      Math.floor(Math.random() * topicArray.length);
+    
+    const selectedTopic = topicArray[topicIndex];
     
     // Generate random dice result (1-4 for both dice)
     const diceRow = Math.floor(Math.random() * 4) + 1;
@@ -160,7 +165,7 @@ export const useGameState = () => {
   }, []);
 
   const resetGame = useCallback(() => {
-    setGameState({
+    setGameState(prev => ({
       players: [],
       currentPlayer: 0,
       currentTopic: null,
@@ -173,8 +178,8 @@ export const useGameState = () => {
       discussionStarted: false,
       showBoardDuringReveal: false,
       hasSeenSummary: false,
-      isFilipino: false
-    });
+      isFilipino: prev.isFilipino // Keep language preference
+    }));
   }, []);
 
   return {
