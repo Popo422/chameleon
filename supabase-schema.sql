@@ -74,11 +74,13 @@ CREATE POLICY "Authenticated users can create rooms"
   WITH CHECK (true);
 
 -- Only room host can update rooms (enforced at database level)
+-- Also allows update when host_id is NULL (initial room setup)
 CREATE POLICY "Host can update rooms"
   ON rooms FOR UPDATE
   TO authenticated
   USING (
-    host_id IN (
+    host_id IS NULL
+    OR host_id IN (
       SELECT id FROM players WHERE auth_user_id = auth.uid()
     )
   );

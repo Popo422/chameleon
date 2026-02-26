@@ -100,14 +100,16 @@ npm run dev
 If you set up your database before this update, run this SQL to apply important fixes:
 
 ```sql
--- Fix 1: Security - Only host can update rooms
+-- Fix 1: Security - Only host can update rooms (also allows initial setup when host_id is NULL)
 DROP POLICY IF EXISTS "Authenticated users can update rooms" ON rooms;
+DROP POLICY IF EXISTS "Host can update rooms" ON rooms;
 
 CREATE POLICY "Host can update rooms"
   ON rooms FOR UPDATE
   TO authenticated
   USING (
-    host_id IN (
+    host_id IS NULL
+    OR host_id IN (
       SELECT id FROM players WHERE auth_user_id = auth.uid()
     )
   );
