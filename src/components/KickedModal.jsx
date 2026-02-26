@@ -49,6 +49,7 @@ const KickedModal = ({ isOpen, onClose }) => {
 
             <h3>You've Been Kicked</h3>
             <p>The host has removed you from the room.</p>
+            <p className="countdown-text">Redirecting in {countdown}s...</p>
 
             <motion.button
               className="modal-submit-btn"
