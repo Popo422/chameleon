@@ -35,6 +35,7 @@ export const GameProvider = ({ children }) => {
   const [hasRevealed, setHasRevealed] = useState(false);
   const [allPlayersRevealed, setAllPlayersRevealed] = useState(false);
   const [isChameleon, setIsChameleon] = useState(false);
+  const [wasKicked, setWasKicked] = useState(false);
 
   const navigate = useNavigate();
 
@@ -89,9 +90,9 @@ export const GameProvider = ({ children }) => {
       setRoom(null);
       setPlayers([]);
       setCurrentPlayer(null);
-      navigate('/', { replace: true });
+      setWasKicked(true); // Show kicked modal instead of immediate redirect
     }
-  }, [navigate, userId]);
+  }, [userId]);
 
   const handlePlayerUpdate = useCallback((updatedPlayer) => {
     setPlayers((prev) =>
@@ -259,7 +260,15 @@ export const GameProvider = ({ children }) => {
    */
   const kickPlayer = useCallback(async (playerId) => {
     if (!isHost || !currentPlayer) return { success: false, error: 'Not authorized' };
-    return await kickPlayerApi(playerId, currentPlayer.id);
+
+    const result = await kickPlayerApi(playerId, currentPlayer.id);
+
+    // Manually remove from local state as fallback (don't rely solely on realtime)
+    if (result.success) {
+      setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    }
+
+    return result;
   }, [isHost, currentPlayer, kickPlayerApi]);
 
   /**
@@ -397,6 +406,13 @@ export const GameProvider = ({ children }) => {
     startVotingPhase,
     endVotingPhase,
     newRound,
+
+    // Kicked state
+    wasKicked,
+    dismissKicked: () => {
+      setWasKicked(false);
+      navigate('/', { replace: true });
+    },
 
     // Helpers
     setError,

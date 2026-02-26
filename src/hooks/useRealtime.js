@@ -57,16 +57,18 @@ export const useRealtime = (roomId, callbacks = {}) => {
     );
 
     // Subscribe to player deletes (leaves/kicks)
+    // Note: No filter here because DELETE events can't filter on deleted row data
+    // We pass the payload.old.id and let the callback handle filtering
     channel.on(
       'postgres_changes',
       {
         event: 'DELETE',
         schema: 'public',
         table: 'players',
-        filter: `room_id=eq.${roomId}`,
       },
       (payload) => {
-        if (onPlayerLeave) {
+        // Filter client-side: only handle if it's for our room
+        if (onPlayerLeave && payload.old?.room_id === roomId) {
           onPlayerLeave(payload.old);
         }
       }

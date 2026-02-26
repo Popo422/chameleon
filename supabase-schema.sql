@@ -133,6 +133,9 @@ ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
 -- Enable realtime for players table
 ALTER PUBLICATION supabase_realtime ADD TABLE players;
 
+-- Enable REPLICA IDENTITY FULL for players so DELETE events include old row data
+ALTER TABLE players REPLICA IDENTITY FULL;
+
 -- ==========================================
 -- CLEANUP FUNCTION (Optional)
 -- ==========================================

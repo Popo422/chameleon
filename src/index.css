@@ -1900,6 +1900,37 @@ body {
   padding: 1.25rem;
 }
 
+/* Kicked Modal */
+.kicked-modal {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  max-width: 320px;
+}
+
+.kicked-modal .kicked-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  color: #dc2626;
+}
+
+.kicked-modal h3 {
+  color: #dc2626;
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.kicked-modal p {
+  color: var(--text-light);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
 /* Lobby Screen */
 .lobby-screen {
   background: var(--surface);

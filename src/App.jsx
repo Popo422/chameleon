@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
-import { GameProvider } from './context/GameContext';
+import { GameProvider, useGame } from './context/GameContext';
 
 // Mode Selection
 import ModeSelect from './components/ModeSelect';
@@ -16,6 +16,13 @@ import GameScreen from './components/screens/GameScreen';
 import VotingScreen from './components/screens/VotingScreen';
 import ResultsScreen from './components/screens/ResultsScreen';
 import JoinHandler from './components/JoinHandler';
+import KickedModal from './components/KickedModal';
+
+// Wrapper to show kicked modal
+const KickedModalWrapper = () => {
+  const { wasKicked, dismissKicked } = useGame();
+  return <KickedModal isOpen={wasKicked} onClose={dismissKicked} />;
+};
 
 function App() {
   return (
@@ -49,6 +56,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
+          <KickedModalWrapper />
           <Toaster
             position="top-center"
             toastOptions={{

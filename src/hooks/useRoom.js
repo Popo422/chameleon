@@ -325,25 +325,31 @@ export const useRoom = () => {
     setError(null);
 
     try {
-      // Verify host
+      // Verify host (use maybeSingle to avoid error if not found)
       const { data: host } = await supabase
         .from('players')
         .select('is_host, room_id')
         .eq('id', hostPlayerId)
-        .single();
+        .maybeSingle();
 
       if (!host || !host.is_host) {
         throw new Error('Only the host can kick players.');
       }
 
-      // Verify player is in same room
+      // Verify player is in same room (use maybeSingle to handle already-left case)
       const { data: player } = await supabase
         .from('players')
         .select('room_id')
         .eq('id', playerId)
-        .single();
+        .maybeSingle();
 
-      if (!player || player.room_id !== host.room_id) {
+      if (!player) {
+        // Player already left - not an error, just return success
+        setLoading(false);
+        return { success: true, error: null };
+      }
+
+      if (player.room_id !== host.room_id) {
         throw new Error('Player not found in this room.');
       }
 

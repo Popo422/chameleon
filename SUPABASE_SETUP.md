@@ -95,15 +95,14 @@ npm run dev
   ALTER PUBLICATION supabase_realtime ADD TABLE players;
   ```
 
-## Migration: Update RLS Policy (Existing Databases Only)
+## Migration: Existing Databases Only
 
-If you set up your database before this update, run this SQL to fix a security vulnerability where any user could modify any room:
+If you set up your database before this update, run this SQL to apply important fixes:
 
 ```sql
--- Drop the old insecure policy
+-- Fix 1: Security - Only host can update rooms
 DROP POLICY IF EXISTS "Authenticated users can update rooms" ON rooms;
 
--- Create the new secure policy (only host can update)
 CREATE POLICY "Host can update rooms"
   ON rooms FOR UPDATE
   TO authenticated
@@ -112,6 +111,9 @@ CREATE POLICY "Host can update rooms"
       SELECT id FROM players WHERE auth_user_id = auth.uid()
     )
   );
+
+-- Fix 2: Enable REPLICA IDENTITY FULL so player leave/kick events work properly
+ALTER TABLE players REPLICA IDENTITY FULL;
 ```
 
 ## Optional: View Your Data
