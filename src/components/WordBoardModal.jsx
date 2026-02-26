@@ -3,8 +3,29 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import WordBoard from './WordBoard';
 
-const WordBoardModal = ({ isOpen, onClose, gameState }) => {
+const WordBoardModal = ({
+  isOpen,
+  onClose,
+  // New online mode props
+  topic,
+  diceResult,
+  showSecret,
+  // Legacy local mode props
+  gameState
+}) => {
   if (!isOpen) return null;
+
+  // Support both old and new prop patterns
+  const actualTopic = topic ?? gameState?.currentTopic;
+  const actualDiceResult = diceResult ?? gameState?.diceResult;
+
+  // For local game mode, derive showSecret from gameState
+  // Show secret if: explicit prop is true, OR in local mode and current player is not the chameleon
+  const actualShowSecret = showSecret ?? (
+    gameState
+      ? !gameState.players[gameState.currentPlayer]?.isChameleon
+      : false
+  );
 
   return createPortal(
     <AnimatePresence>
@@ -30,13 +51,12 @@ const WordBoardModal = ({ isOpen, onClose, gameState }) => {
               <X size={20} />
             </button>
           </div>
-          
+
           <div className="modal-content">
-            <WordBoard 
-              topic={gameState.currentTopic}
-              secretWord={gameState.secretWord}
-              diceResult={gameState.diceResult}
-              showSecret={false}
+            <WordBoard
+              topic={actualTopic}
+              diceResult={actualDiceResult}
+              showSecret={actualShowSecret}
             />
           </div>
         </motion.div>

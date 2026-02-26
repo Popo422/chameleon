@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import { useSounds } from '../hooks/useSounds';
 import topicsData from '../data/topics.json';
 
-const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
+const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino, onBack }) => {
   const [playerCount, setPlayerCount] = useState(4);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const { playClickSound, playSuccessSound } = useSounds();
@@ -40,6 +41,20 @@ const GameSetup = ({ onStartGame, onToggleFilipino, isFilipino }) => {
       transition={{ duration: 0.5 }}
     >
       <div className="setup-content">
+        {onBack && (
+          <motion.button
+            className="back-btn"
+            onClick={onBack}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft size={20} />
+            Back
+          </motion.button>
+        )}
+
         <div className="header-container">
           <motion.h1
             initial={{ y: -30, opacity: 0 }}
