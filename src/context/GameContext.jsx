@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, getStoredSession, setStoredSession, clearStoredSession } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useRoom } from '../hooks/useRoom';
 import { useRealtime, usePresence } from '../hooks/useRealtime';
@@ -85,12 +85,14 @@ export const GameProvider = ({ children }) => {
   const handlePlayerLeave = useCallback((leftPlayer) => {
     setPlayers((prev) => prev.filter((p) => p.id !== leftPlayer.id));
 
-    // Check if current player was kicked (by comparing auth_user_id)
-    if (leftPlayer.auth_user_id === userId) {
+    // Check if current player was kicked (by comparing auth_user_id or stored session)
+    const storedSession = getStoredSession();
+    if (leftPlayer.auth_user_id === userId || leftPlayer.id === storedSession?.playerId) {
       setRoom(null);
       setPlayers([]);
       setCurrentPlayer(null);
       setWasKicked(true); // Show kicked modal instead of immediate redirect
+      clearStoredSession();
     }
   }, [userId]);
 
@@ -158,6 +160,9 @@ export const GameProvider = ({ children }) => {
     setIsFilipino(filipino);
     setLoading(false);
 
+    // Store session for rejoin
+    setStoredSession(player.id, newRoom.code);
+
     return { success: true, roomCode: newRoom.code };
   }, [userId, createRoomApi]);
 
@@ -190,6 +195,9 @@ export const GameProvider = ({ children }) => {
     setIsFilipino(joinedRoom.is_filipino);
     setLoading(false);
 
+    // Store session for rejoin
+    setStoredSession(player.id, joinedRoom.code);
+
     return { success: true };
   }, [userId, joinRoomApi, getRoomByCode]);
 
@@ -213,22 +221,37 @@ export const GameProvider = ({ children }) => {
       return { success: false, error: err };
     }
 
-    if (!ourPlayer) {
+    // Try to find player by auth_user_id first, then fall back to stored session
+    let player = ourPlayer;
+
+    if (!player) {
+      // Check stored session as fallback
+      const storedSession = getStoredSession();
+      if (storedSession && storedSession.roomCode === code) {
+        player = foundPlayers.find((p) => p.id === storedSession.playerId) || null;
+      }
+    }
+
+    if (!player) {
       setError('You are not in this room. Please join first.');
       setLoading(false);
+      clearStoredSession();
       return { success: false, error: 'Not in room' };
     }
 
     // Update connection status
-    await updateConnectionStatus(ourPlayer.id, true);
+    await updateConnectionStatus(player.id, true);
 
     setRoom(foundRoom);
-    setCurrentPlayer(ourPlayer);
+    setCurrentPlayer(player);
     setPlayers(foundPlayers);
-    setIsHost(ourPlayer.is_host);
+    setIsHost(player.is_host);
     setIsFilipino(foundRoom.is_filipino);
-    setHasRevealed(ourPlayer.has_revealed);
+    setHasRevealed(player.has_revealed);
     setLoading(false);
+
+    // Update stored session with current info
+    setStoredSession(player.id, foundRoom.code);
 
     return { success: true };
   }, [userId, getRoomByCode, updateConnectionStatus]);
@@ -251,6 +274,9 @@ export const GameProvider = ({ children }) => {
     setIsChameleon(false);
     voting.resetVoting();
     setLoading(false);
+
+    // Clear stored session
+    clearStoredSession();
 
     navigate('/', { replace: true });
   }, [currentPlayer, leaveRoomApi, navigate, voting]);
@@ -411,6 +437,7 @@ export const GameProvider = ({ children }) => {
     wasKicked,
     dismissKicked: () => {
       setWasKicked(false);
+      clearStoredSession();
       navigate('/', { replace: true });
     },
 
