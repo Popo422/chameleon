@@ -1,86 +1,106 @@
 # Chameleon Game - Project Overview
 
 ## Description
-Mobile-first React web app implementation of the Chameleon board game with pass-the-phone mechanics, supporting both English and Filipino languages.
+Mobile-first React web app implementation of the Chameleon board game with **online multiplayer** via Supabase. Supports both English and Filipino languages.
+
+## Tech Stack
+- **Frontend**: React 18 + Vite
+- **Backend**: Supabase (PostgreSQL + Realtime + Anonymous Auth)
+- **Styling**: CSS with Framer Motion animations
+- **Icons**: Lucide React
+- **Notifications**: React Hot Toast
 
 ## Key Features
-- **Pass-the-phone gameplay**: Each player takes turns revealing their role
-- **Long press to reveal**: Hold chameleon icon to see role/word
+- **Online multiplayer**: Real-time room-based gameplay with 3-8 players
+- **Room codes**: 6-character codes to join games (e.g., "ABC123")
+- **Host controls**: Start game, kick players, change settings
 - **Filipino mode**: Toggle between English and Filipino topics
-- **Sound effects**: Custom Web Audio API sounds for interactions
-- **Mobile optimized**: Responsive design with landscape support
-- **Navigation controls**: Previous/Next buttons for easy player switching
-- **Role review**: Players can review roles after initial reveal phase
+- **Voting system**: Timed voting phase to find the chameleon
+- **Sound effects**: Custom Web Audio API sounds
+- **Mobile optimized**: Responsive design
 
 ## Project Structure
 ```
 chameleon-game/
 ├── src/
 │   ├── components/
-│   │   ├── GameSetup.jsx          # Initial screen with player selection
-│   │   ├── PlayerIndicator.jsx    # Shows current player with navigation
-│   │   ├── ChameleonIcon.jsx      # Long-press icon for role reveal
-│   │   ├── RevealCard.jsx         # Shows role/word after reveal
-│   │   ├── WordBoard.jsx          # 4x4 grid of topic words
-│   │   ├── WordBoardModal.jsx     # Modal wrapper for word board
-│   │   ├── AllPlayersRevealed.jsx # Summary screen after all reveals
-│   │   └── DiscussionPhase.jsx    # Discussion phase with word board
+│   │   ├── screens/
+│   │   │   ├── LobbyScreen.jsx      # Waiting room before game starts
+│   │   │   ├── GameScreen.jsx       # Role reveal phase
+│   │   │   ├── VotingScreen.jsx     # Voting phase
+│   │   │   └── ResultsScreen.jsx    # Round results
+│   │   ├── ModeSelect.jsx           # Choose create/join room
+│   │   ├── CreateRoom.jsx           # Host creates a room
+│   │   ├── JoinRoom.jsx             # Player joins via code
+│   │   ├── JoinHandler.jsx          # Handles /room/:code URLs
+│   │   ├── PlayerList.jsx           # Shows players with kick option
+│   │   ├── KickedModal.jsx          # Modal when player is kicked
+│   │   ├── WordBoard.jsx            # 4x4 grid of topic words
+│   │   └── ChameleonIcon.jsx        # Long-press reveal icon
+│   ├── context/
+│   │   ├── AuthContext.jsx          # Supabase anonymous auth
+│   │   └── GameContext.jsx          # Central game state
 │   ├── hooks/
-│   │   ├── useGameState.js        # Central game state management
-│   │   └── useSounds.js           # Web Audio API sound effects
+│   │   ├── useRoom.js               # Room CRUD operations
+│   │   ├── useRealtime.js           # Supabase realtime subscriptions
+│   │   ├── useVoting.js             # Voting logic and timer
+│   │   └── useSounds.js             # Web Audio API sounds
+│   ├── lib/
+│   │   └── supabase.js              # Supabase client config
 │   ├── data/
-│   │   └── topics.json            # English & Filipino topics/words
-│   └── App.jsx                    # Main app component
+│   │   └── topics.json              # English & Filipino topics
+│   └── App.jsx                      # Routes and providers
+├── supabase-schema.sql              # Database schema
+├── SUPABASE_SETUP.md                # Setup guide
+└── .env                             # Supabase credentials (not committed)
 ```
 
 ## Game Flow
-1. **Setup Phase**: Select number of players (3-8), toggle Filipino mode
-2. **Role Assignment**: Random chameleon selection, secret word picked
-3. **Reveal Phase**: Each player long-presses chameleon icon to see role
-4. **Summary Screen**: Shows player count breakdown after all reveals
-5. **Discussion Phase**: Players discuss and try to find chameleon
+1. **Mode Select**: Create or join a room
+2. **Lobby**: Wait for players, host configures settings
+3. **Game Phase**: Each player reveals their role (chameleon or word)
+4. **Discussion**: Players discuss to find the chameleon
+5. **Voting Phase**: Timed voting to accuse a player
+6. **Results**: Reveal chameleon, show votes, option for new round
+
+## Supabase Architecture
+
+### Tables
+- **rooms**: Game sessions with status, topic, secret word, chameleon_id
+- **players**: Players linked to rooms with auth_user_id, is_host, vote_target_id
+
+### Row Level Security (RLS)
+- Anyone authenticated can read rooms/players
+- Only host can update rooms (when `host_id IS NULL` OR user is host)
+- Users can only update their own player record
+- Host can kick (delete) any player in their room
+
+### Realtime Subscriptions
+- Room updates (status changes, game start)
+- Player joins/leaves/updates
+- Requires `REPLICA IDENTITY FULL` on players table for DELETE events
 
 ## Important Implementation Details
 
-### Long Press Mechanism
-- Uses `mousedown`/`touchstart` events
-- Progress ring animation shows hold progress
-- 1 second hold time to reveal
-- Sound effect plays on successful reveal
+### Anonymous Auth
+- Users get anonymous Supabase session on first visit
+- Session persists in localStorage
+- `auth_user_id` links player records to auth session
 
-### Filipino Mode
-- Toggle via flag button on setup screen
-- Changes topics to Filipino categories:
-  - Pagkaing Pinoy (Filipino Food)
-  - Artista (Celebrities)
-  - Lugar sa Pilipinas (Philippine Places)
-  - Salitang Pinoy (Filipino Words)
-  - TV Shows
-  - Mga Hayop (Animals)
+### Host Privileges
+- `is_host: true` on player record
+- `host_id` on room points to host's player ID
+- Only host can: start game, kick players, change settings, start voting
 
-### Mobile Optimizations
-- Touch-friendly buttons with proper sizing
-- Landscape orientation support with media queries
-- Reduced font sizes for mobile screens
-- Previous/Next navigation for easy player switching
+### Realtime Gotchas
+- DELETE events don't support server-side filtering
+- Must use `REPLICA IDENTITY FULL` to get old row data on DELETE
+- Client-side filtering: `payload.old?.room_id === roomId`
 
-### State Management
-Key state properties in `useGameState`:
-- `players`: Array of player objects with role info
-- `currentPlayer`: Index of active player
-- `secretWord`: The word non-chameleons see
-- `chameleonPlayer`: Index of chameleon
-- `isRevealed`: Current player's reveal status
-- `allPlayersRevealed`: All players have seen roles
-- `discussionStarted`: In discussion phase
-- `isFilipino`: Language mode toggle
-- `hasSeenSummary`: Tracks if summary was shown
-
-### Sound System
-Custom sounds using Web Audio API:
-- `playClickSound()`: Button clicks (800Hz → 400Hz)
-- `playRevealSound()`: Role reveals (dual oscillators)
-- `playSuccessSound()`: Game actions (C-E-G chord)
+### Room Rejoin on Refresh
+- LobbyScreen checks if user is in room via `getRoomByCode`
+- If not in room, redirects to join page
+- Connection status updated on rejoin
 
 ## Common Commands
 ```bash
@@ -89,31 +109,35 @@ npm run build    # Build for production
 npm run preview  # Preview production build
 ```
 
-## UI/UX Notes
-- Green theme throughout (#10b981 primary)
-- Framer Motion for smooth animations
-- React Hot Toast for notifications
-- Lucide React for icons
-- All text/buttons optimized for touch
-
-## Recent Updates
-- Added Filipino flag SVG button with proper colors
-- Integrated Previous/Next navigation into PlayerIndicator
-- Added "Back to Summary" button during role review
-- Implemented Web Audio API sound effects
-- Fixed bug where last player couldn't see their role
+## Environment Variables
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
 ## Known Issues & Solutions
-- **Issue**: Last player immediately sees summary
-  - **Fix**: Added `!gameState.isRevealed` check to summary display condition
-- **Issue**: UI too large on mobile
-  - **Fix**: Reduced font sizes, padding, and element dimensions
-- **Issue**: No landscape support
-  - **Fix**: Added landscape media queries for all components
+
+### Issue: Start Game does nothing
+- **Cause**: `host_id` is NULL, RLS blocks update
+- **Fix**: RLS policy now allows update when `host_id IS NULL`
+
+### Issue: Kicked player notification not showing
+- **Cause**: DELETE events need `REPLICA IDENTITY FULL`
+- **Fix**: `ALTER TABLE players REPLICA IDENTITY FULL;`
+
+### Issue: Player leave not detected
+- **Cause**: Server-side filter on DELETE doesn't work
+- **Fix**: Remove filter, do client-side check on `payload.old.room_id`
+
+### Issue: Refresh shows "not found"
+- **Cause**: Rejoin logic failing or room state lost
+- **Check**: `rejoinRoom()` in LobbyScreen useEffect
+
+## Database Migrations
+See `SUPABASE_SETUP.md` for migration SQL when updating existing databases.
 
 ## Future Enhancements
-- Timer for discussion phase
-- Voting mechanism
 - Score tracking across rounds
-- More topic categories
 - Custom word lists
+- Spectator mode
+- Game history

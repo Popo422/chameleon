@@ -37,26 +37,33 @@ const LobbyScreen = () => {
   // Handle rejoining if we're authenticated but not in room yet
   useEffect(() => {
     if (authLoading) return; // Wait for auth
-    if (!room && code && !rejoinAttemptedRef.current) {
+    if (!code) {
+      // No room code in URL - redirect to home
+      navigate('/', { replace: true });
+      return;
+    }
+    if (!room && !rejoinAttemptedRef.current) {
       rejoinAttemptedRef.current = true;
       rejoinRoom(code)
         .then((result) => {
           if (!result.success) {
-            navigate(`/join/${code}`);
+            navigate(`/join/${code}`, { replace: true });
           }
         })
         .catch(() => {
-          navigate(`/join/${code}`);
+          navigate(`/join/${code}`, { replace: true });
         });
     }
   }, [code, room, rejoinRoom, navigate, authLoading]);
 
-  // Navigate when game starts
+  // Navigate when game starts (only when room is loaded)
   useEffect(() => {
+    if (!room || !roomCode) return; // Don't navigate until room is loaded
+
     if (roomStatus === 'playing') {
-      navigate(`/room/${roomCode}/game`);
+      navigate(`/room/${roomCode}/game`, { replace: true });
     }
-  }, [roomStatus, roomCode, navigate]);
+  }, [room, roomStatus, roomCode, navigate]);
 
   const shareUrl = `${window.location.origin}/room/${roomCode}`;
   const availableTopics = isFilipino ? topicsData.filipinoTopics : topicsData.topics;

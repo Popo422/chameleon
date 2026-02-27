@@ -41,16 +41,18 @@ const VotingScreen = () => {
     }
   }, [code, room, rejoinRoom, navigate, authLoading]);
 
-  // Navigate based on room status
+  // Navigate based on room status (only when room is loaded)
   useEffect(() => {
+    if (!room || !roomCode) return; // Don't navigate until room is loaded
+
     if (roomStatus === 'lobby') {
-      navigate(`/room/${roomCode}/lobby`);
+      navigate(`/room/${roomCode}/lobby`, { replace: true });
     } else if (roomStatus === 'playing') {
-      navigate(`/room/${roomCode}/game`);
+      navigate(`/room/${roomCode}/game`, { replace: true });
     } else if (roomStatus === 'results') {
-      navigate(`/room/${roomCode}/results`);
+      navigate(`/room/${roomCode}/results`, { replace: true });
     }
-  }, [roomStatus, roomCode, navigate]);
+  }, [room, roomStatus, roomCode, navigate]);
 
   // Auto-end voting when timer reaches 0 (only host triggers to prevent race conditions)
   useEffect(() => {

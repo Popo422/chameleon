@@ -60,16 +60,18 @@ const GameScreen = () => {
     startMusic();
   }, [startMusic]);
 
-  // Navigate based on room status
+  // Navigate based on room status (only when room is loaded)
   useEffect(() => {
+    if (!room || !roomCode) return; // Don't navigate until room is loaded
+
     if (roomStatus === 'lobby') {
-      navigate(`/room/${roomCode}/lobby`);
+      navigate(`/room/${roomCode}/lobby`, { replace: true });
     } else if (roomStatus === 'voting') {
-      navigate(`/room/${roomCode}/vote`);
+      navigate(`/room/${roomCode}/vote`, { replace: true });
     } else if (roomStatus === 'results') {
-      navigate(`/room/${roomCode}/results`);
+      navigate(`/room/${roomCode}/results`, { replace: true });
     }
-  }, [roomStatus, roomCode, navigate]);
+  }, [room, roomStatus, roomCode, navigate]);
 
   const handleReveal = async () => {
     if (hasRevealed) return;

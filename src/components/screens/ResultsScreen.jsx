@@ -69,16 +69,18 @@ const ResultsScreen = () => {
     fetchResults();
   }, [room, voting, isChameleon, playSuccessSound]);
 
-  // Navigate based on room status
+  // Navigate based on room status (only when room is loaded)
   useEffect(() => {
+    if (!room || !roomCode) return; // Don't navigate until room is loaded
+
     if (roomStatus === 'lobby') {
-      navigate(`/room/${roomCode}/lobby`);
+      navigate(`/room/${roomCode}/lobby`, { replace: true });
     } else if (roomStatus === 'playing') {
-      navigate(`/room/${roomCode}/game`);
+      navigate(`/room/${roomCode}/game`, { replace: true });
     } else if (roomStatus === 'voting') {
-      navigate(`/room/${roomCode}/vote`);
+      navigate(`/room/${roomCode}/vote`, { replace: true });
     }
-  }, [roomStatus, roomCode, navigate]);
+  }, [room, roomStatus, roomCode, navigate]);
 
   const handleNewRound = async () => {
     const result = await newRound();
@@ -108,7 +110,7 @@ const ResultsScreen = () => {
     return (
       <div className="error-screen">
         <p>Error loading results</p>
-        <button onClick={() => navigate(`/room/${roomCode}/lobby`)}>
+        <button onClick={() => navigate(`/room/${roomCode || code}/lobby`)}>
           Return to Lobby
         </button>
       </div>
