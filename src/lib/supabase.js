@@ -70,3 +70,21 @@ export const getStoredPlayerName = () => {
 export const setStoredPlayerName = (name) => {
   localStorage.setItem('chameleon_player_name', name);
 };
+
+// Store current session info for rejoin fallback
+export const getStoredSession = () => {
+  try {
+    const data = localStorage.getItem('chameleon_session');
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredSession = (playerId, roomCode) => {
+  localStorage.setItem('chameleon_session', JSON.stringify({ playerId, roomCode }));
+};
+
+export const clearStoredSession = () => {
+  localStorage.removeItem('chameleon_session');
+};
