@@ -386,6 +386,20 @@ body {
   margin: 1rem 0;
   flex: 1;
   align-items: center;
+  width: 100%;
+  cursor: pointer;
+  /* Holding anywhere in this area reveals — and never selects text. */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.chameleon-container.disabled {
+  cursor: not-allowed;
 }
 
 .chameleon-icon {
@@ -2525,6 +2539,12 @@ body {
   align-items: center;
   justify-content: center;
   padding: 1rem 0;
+}
+
+/* Don't let holding-to-reveal select the surrounding instruction text. */
+.reveal-section {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .reveal-header {

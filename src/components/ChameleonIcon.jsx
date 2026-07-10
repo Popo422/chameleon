@@ -56,14 +56,18 @@ const ChameleonIcon = ({ onLongPress, disabled = false }) => {
   }, []);
 
   return (
-    <div className="chameleon-container">
+    // The whole container is the hold target (not just the small icon), so
+    // players can press anywhere in the empty space to reveal.
+    <div
+      className={`chameleon-container ${disabled ? 'disabled' : ''}`}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+    >
       <motion.div
         className={`chameleon-icon ${disabled ? 'disabled' : ''}`}
-        onMouseDown={handlePressStart}
-        onMouseUp={handlePressEnd}
-        onMouseLeave={handlePressEnd}
-        onTouchStart={handlePressStart}
-        onTouchEnd={handlePressEnd}
         whileHover={{ scale: disabled ? 1 : 1.05 }}
         whileTap={{ scale: disabled ? 1 : 0.95 }}
         animate={{
