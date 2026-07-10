@@ -5,8 +5,11 @@ import { useGame } from '../context/GameContext';
 import { useSounds } from '../hooks/useSounds';
 import { normalizeRoomCode, isValidRoomCode } from '../utils/roomCode';
 
+const sanitizeCode = (value) =>
+  (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+
 const JoinModal = ({ isOpen, onClose, onSuccess, initialCode = '' }) => {
-  const [roomCode, setRoomCode] = useState(initialCode);
+  const [roomCode, setRoomCode] = useState(() => sanitizeCode(initialCode));
   const [playerName, setPlayerName] = useState('');
   const [joining, setJoining] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -57,7 +60,7 @@ const JoinModal = ({ isOpen, onClose, onSuccess, initialCode = '' }) => {
   };
 
   const handleClose = () => {
-    setRoomCode(initialCode);
+    setRoomCode(sanitizeCode(initialCode));
     setPlayerName('');
     setLocalError('');
     onClose();

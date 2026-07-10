@@ -14,8 +14,14 @@ export const useRealtime = (roomId, callbacks = {}) => {
     onPlayerJoin,
     onPlayerLeave,
     onPlayerUpdate,
-    onAllRevealed,
+    onSubscribed,
   } = callbacks;
+
+  // Keep the latest onSubscribed without forcing a re-subscribe when it changes.
+  const onSubscribedRef = useRef(onSubscribed);
+  useEffect(() => {
+    onSubscribedRef.current = onSubscribed;
+  }, [onSubscribed]);
 
   // Subscribe to room and player changes
   useEffect(() => {
@@ -90,8 +96,15 @@ export const useRealtime = (roomId, callbacks = {}) => {
       }
     );
 
-    // Subscribe to the channel
-    channel.subscribe();
+    // Subscribe to the channel. Any INSERT/DELETE/UPDATE that happens between
+    // the caller's initial snapshot and the channel reaching SUBSCRIBED is not
+    // delivered, so we re-fetch the authoritative state once we're live to
+    // close that gap.
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED' && onSubscribedRef.current) {
+        onSubscribedRef.current();
+      }
+    });
 
     channelRef.current = channel;
 

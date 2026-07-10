@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 export const useBackgroundMusic = () => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.3); // 30% volume by default
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Once the user explicitly pauses, don't let an auto-start re-enable music.
+  const userPausedRef = useRef(false);
 
-  const initializeMusic = () => {
-    if (!isInitialized) {
+  const initializeMusic = useCallback(() => {
+    if (!audioRef.current) {
       audioRef.current = new Audio('/music.mp3');
       audioRef.current.loop = true;
       audioRef.current.volume = volume;
-      setIsInitialized(true);
     }
-  };
+  }, [volume]);
 
-  const startMusic = async () => {
+  const startMusic = useCallback(async () => {
+    if (userPausedRef.current) return; // respect an explicit pause
     initializeMusic();
     try {
       await audioRef.current.play();
@@ -23,7 +24,7 @@ export const useBackgroundMusic = () => {
     } catch (error) {
       console.error('Failed to play music:', error);
     }
-  };
+  }, [initializeMusic]);
 
   // Cleanup
   useEffect(() => {
@@ -42,32 +43,32 @@ export const useBackgroundMusic = () => {
     }
   }, [volume]);
 
-  const toggleMusic = () => {
-    if (!isInitialized) {
-      initializeMusic();
-    }
-    
+  const toggleMusic = useCallback(() => {
+    initializeMusic();
+
     if (audioRef.current) {
       if (isPlaying) {
+        userPausedRef.current = true; // remember the user's intent
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
+        userPausedRef.current = false;
         audioRef.current.play();
         setIsPlaying(true);
       }
     }
-  };
-  
-  const stopMusic = () => {
+  }, [initializeMusic, isPlaying]);
+
+  const stopMusic = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
     }
-  };
+  }, []);
 
-  const changeVolume = (newVolume) => {
+  const changeVolume = useCallback((newVolume) => {
     setVolume(Math.max(0, Math.min(1, newVolume)));
-  };
+  }, []);
 
   return {
     isPlaying,

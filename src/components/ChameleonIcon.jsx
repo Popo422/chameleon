@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSounds } from '../hooks/useSounds';
 
@@ -45,6 +45,15 @@ const ChameleonIcon = ({ onLongPress, disabled = false }) => {
     setIsPressed(false);
     setPressProgress(0);
   };
+
+  // Clear any pending timer on unmount (e.g. reveal navigates away mid-press)
+  // so it can't fire onLongPress / setState on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   return (
     <div className="chameleon-container">

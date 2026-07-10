@@ -28,13 +28,14 @@ export const useRoom = () => {
       let attempts = 0;
       const MAX_ATTEMPTS = 5;
 
-      // Check for code uniqueness (rare collision handling)
+      // Check for code uniqueness (rare collision handling). maybeSingle avoids
+      // a thrown 406 on the expected "no existing row" case.
       while (attempts < MAX_ATTEMPTS) {
         const { data: existing } = await supabase
           .from('rooms')
           .select('id')
           .eq('code', code)
-          .single();
+          .maybeSingle();
 
         if (!existing) break;
         code = generateRoomCode();
@@ -165,13 +166,15 @@ export const useRoom = () => {
         throw new Error('Room is full (max 8 players).');
       }
 
-      // Check for duplicate name
+      // Check for duplicate name (case-insensitive; maybeSingle avoids a 406
+      // when there's no match). The DB unique index is the real guard against
+      // the check-then-insert race — this just gives a friendlier message.
       const { data: duplicateName } = await supabase
         .from('players')
         .select('id')
         .eq('room_id', room.id)
-        .eq('name', playerName)
-        .single();
+        .ilike('name', playerName)
+        .maybeSingle();
 
       if (duplicateName) {
         throw new Error('A player with this name already exists in the room.');
@@ -259,51 +262,17 @@ export const useRoom = () => {
     setError(null);
 
     try {
-      // Get player info first
-      const { data: player, error: playerError } = await supabase
-        .from('players')
-        .select('*, rooms(*)')
-        .eq('id', playerId)
-        .single();
+      // Do the whole leave server-side in one atomic, SECURITY DEFINER function.
+      // This is required because the players UPDATE RLS policy only lets a user
+      // edit their OWN row — a departing host cannot promote another player from
+      // the client. The RPC handles delete + mid-game reset + host handoff (or
+      // room cleanup) atomically, avoiding the dangling-host/ghost-chameleon and
+      // concurrent-leave races.
+      const { error: rpcError } = await supabase.rpc('leave_room', {
+        p_player_id: playerId,
+      });
 
-      if (playerError) throw playerError;
-
-      // Delete player
-      const { error: deleteError } = await supabase
-        .from('players')
-        .delete()
-        .eq('id', playerId);
-
-      if (deleteError) throw deleteError;
-
-      // If host is leaving, assign new host or delete room
-      if (player.is_host) {
-        const { data: remainingPlayers } = await supabase
-          .from('players')
-          .select('*')
-          .eq('room_id', player.room_id)
-          .order('joined_at', { ascending: true })
-          .limit(1);
-
-        if (remainingPlayers && remainingPlayers.length > 0) {
-          // Assign new host
-          await supabase
-            .from('players')
-            .update({ is_host: true })
-            .eq('id', remainingPlayers[0].id);
-
-          await supabase
-            .from('rooms')
-            .update({ host_id: remainingPlayers[0].id })
-            .eq('id', player.room_id);
-        } else {
-          // Delete empty room
-          await supabase
-            .from('rooms')
-            .delete()
-            .eq('id', player.room_id);
-        }
-      }
+      if (rpcError) throw rpcError;
 
       setLoading(false);
       return { success: true, error: null };
@@ -456,11 +425,11 @@ export const useRoom = () => {
 
       if (updateError) throw updateError;
 
-      // Reset all players' revealed status
-      const { error: resetError } = await supabase
-        .from('players')
-        .update({ has_revealed: false, vote_target_id: null })
-        .eq('room_id', roomId);
+      // Reset all players' revealed/vote status via RPC — a plain room-wide
+      // UPDATE only touches the host's own row under the self-only RLS policy.
+      const { error: resetError } = await supabase.rpc('reset_room_players', {
+        p_room_id: roomId,
+      });
 
       if (resetError) throw resetError;
 

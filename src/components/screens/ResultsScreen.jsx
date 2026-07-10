@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -18,7 +18,6 @@ const ResultsScreen = () => {
     players,
     currentPlayer,
     isHost,
-    isChameleon,
     roomCode,
     roomStatus,
     authLoading,
@@ -29,6 +28,14 @@ const ResultsScreen = () => {
   } = useGame();
 
   const { playSuccessSound } = useSounds();
+
+  // getResults()/voting change identity every render; keep a stable ref so the
+  // results effect can depend only on the room id and run exactly once.
+  const votingRef = useRef(voting);
+  useEffect(() => {
+    votingRef.current = voting;
+  });
+  const fetchedRef = useRef(false);
 
   // Handle rejoining
   useEffect(() => {
@@ -42,32 +49,31 @@ const ResultsScreen = () => {
     }
   }, [code, room, rejoinRoom, navigate, authLoading]);
 
-  // Fetch results
+  // Fetch results once when the room is available. Guarded so it never loops
+  // (previously re-fired on every render because `voting` identity changed,
+  // spamming DB reads + confetti/sound).
   useEffect(() => {
-    const fetchResults = async () => {
-      if (room) {
-        const { results: voteResults } = await voting.getResults();
-        setResults(voteResults);
-        setLoading(false);
+    if (!room || !currentPlayer || fetchedRef.current) return;
+    fetchedRef.current = true;
 
-        // Celebration effect
-        if (voteResults) {
-          const playerWon = (isChameleon && !voteResults.chameleonCaught) ||
-                           (!isChameleon && voteResults.chameleonCaught);
-          if (playerWon) {
-            playSuccessSound();
-            confetti({
-              particleCount: 100,
-              spread: 70,
-              origin: { y: 0.6 },
-            });
-          }
+    (async () => {
+      const { results: voteResults } = await votingRef.current.getResults();
+      setResults(voteResults);
+      setLoading(false);
+
+      if (voteResults) {
+        // Derive chameleon status from the authoritative results payload, not
+        // from context isChameleon (which can be stale/false on a refresh).
+        const iAmChameleon = voteResults.chameleonId === currentPlayer.id;
+        const playerWon = (iAmChameleon && !voteResults.chameleonCaught) ||
+                         (!iAmChameleon && voteResults.chameleonCaught);
+        if (playerWon) {
+          playSuccessSound();
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
       }
-    };
-
-    fetchResults();
-  }, [room, voting, isChameleon, playSuccessSound]);
+    })();
+  }, [room?.id, currentPlayer?.id, playSuccessSound]);
 
   // Navigate based on room status (only when room is loaded)
   useEffect(() => {
@@ -126,8 +132,10 @@ const ResultsScreen = () => {
     voteCounts,
   } = results;
 
-  const chameleonWins = !chameleonCaught;
-  const playerWon = (isChameleon && chameleonWins) || (!isChameleon && chameleonCaught);
+  // Use the authoritative results payload for the current player's role so a
+  // refresh/late-mount can't show the wrong "You Won/Lost" (stale isChameleon).
+  const iAmChameleon = results.chameleonId === currentPlayer?.id;
+  const playerWon = (iAmChameleon && !chameleonCaught) || (!iAmChameleon && chameleonCaught);
 
   return (
     <motion.div
@@ -191,7 +199,7 @@ const ResultsScreen = () => {
               {chameleonName.charAt(0).toUpperCase()}
             </div>
             <span>{chameleonName}</span>
-            {isChameleon && <span className="you-tag">(You)</span>}
+            {iAmChameleon && <span className="you-tag">(You)</span>}
           </div>
         </div>
 
@@ -216,7 +224,11 @@ const ResultsScreen = () => {
         <div className="vote-bars">
           {players.map((player) => {
             const voteCount = voteCounts[player.id] || 0;
-            const percentage = (voteCount / players.length) * 100;
+            // Bar width is share of votes actually cast (not of player count),
+            // so the leader's bar fills. Guard against divide-by-zero.
+            const percentage = results.totalVotes > 0
+              ? (voteCount / results.totalVotes) * 100
+              : 0;
             const isAccused = accusedPlayers.some((a) => a.id === player.id);
             const isChameleonPlayer = player.id === results.chameleonId;
 

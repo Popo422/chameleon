@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { Users, Plus, LogIn } from 'lucide-react';
+import { Users, Plus, LogIn, WifiOff, ArrowRight } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useAuth } from '../../context/AuthContext';
 import { useSounds } from '../../hooks/useSounds';
+import { getStoredSession } from '../../lib/supabase';
 import JoinModal from '../JoinModal';
 
 const HomeScreen = () => {
@@ -15,8 +17,23 @@ const HomeScreen = () => {
   const [creating, setCreating] = useState(false);
 
   const { createRoom, error, clearError, authLoading } = useGame();
+  const { isAuthenticated } = useAuth();
   const { playClickSound, playSuccessSound } = useSounds();
   const navigate = useNavigate();
+
+  // If anonymous auth failed (e.g. backend unreachable), rooms can't be
+  // created or joined — tell the user instead of letting clicks do nothing.
+  const backendDown = !authLoading && !isAuthenticated;
+
+  // If the player navigated back here while still in a room (stored session),
+  // offer to jump back in rather than silently stranding them.
+  const activeSession = getStoredSession();
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setHostName('');
+    clearError();
+  };
 
   const handleCreateRoom = async () => {
     if (!hostName.trim()) return;
@@ -70,6 +87,35 @@ const HomeScreen = () => {
           <p>The Party Game of Hidden Identities</p>
         </motion.div>
 
+        {activeSession?.roomCode && !backendDown && (
+          <motion.button
+            className="resume-session-banner"
+            onClick={() => {
+              playClickSound();
+              navigate(`/room/${activeSession.roomCode}/lobby`);
+            }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span>Rejoin room {activeSession.roomCode}</span>
+            <ArrowRight size={18} />
+          </motion.button>
+        )}
+
+        {backendDown && (
+          <motion.div
+            className="connection-error"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="alert"
+          >
+            <WifiOff size={18} />
+            <span>Can't reach the game server. Check your connection and try again.</span>
+          </motion.div>
+        )}
+
         <motion.div
           className="home-actions"
           initial={{ y: 30, opacity: 0 }}
@@ -82,8 +128,9 @@ const HomeScreen = () => {
               playClickSound();
               setShowCreateModal(true);
             }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            disabled={backendDown}
+            whileHover={{ scale: backendDown ? 1 : 1.02 }}
+            whileTap={{ scale: backendDown ? 1 : 0.98 }}
           >
             <Plus size={24} />
             <span>Create Room</span>
@@ -95,8 +142,9 @@ const HomeScreen = () => {
               playClickSound();
               setShowJoinModal(true);
             }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            disabled={backendDown}
+            whileHover={{ scale: backendDown ? 1 : 1.02 }}
+            whileTap={{ scale: backendDown ? 1 : 0.98 }}
           >
             <LogIn size={24} />
             <span>Join Room</span>
@@ -124,7 +172,7 @@ const HomeScreen = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowCreateModal(false)}
+            onClick={closeCreateModal}
           >
             <motion.div
               className="modal-container create-modal"

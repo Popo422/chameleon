@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+import { normalizeRoomCode } from '../utils/roomCode';
 import JoinModal from './JoinModal';
 
 /**
@@ -10,7 +11,11 @@ import JoinModal from './JoinModal';
  * - Otherwise → show join modal
  */
 const JoinHandler = () => {
-  const { code } = useParams();
+  const { code: rawCode } = useParams();
+  // Deep-linked codes may arrive in any case (e.g. /room/abc123); normalize so
+  // comparisons against the DB code (always uppercase) don't silently fail and
+  // hang on "Connecting to room...".
+  const code = normalizeRoomCode(rawCode || '');
   const navigate = useNavigate();
   const [showJoin, setShowJoin] = useState(false);
   const [checking, setChecking] = useState(true);

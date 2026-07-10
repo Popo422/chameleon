@@ -16,15 +16,46 @@
   --surface-hover: #ecfdf5;
   --border: #d1fae5;
   --shadow: rgba(16, 185, 129, 0.15);
-  
+  /* Elevation + accents (additive; safe defaults for existing rules) */
+  --surface-gradient: linear-gradient(160deg, #ffffff 0%, #f7fefb 100%);
+  --card-shadow: 0 10px 40px -8px rgba(6, 95, 70, 0.18), 0 2px 8px rgba(6, 95, 70, 0.06);
+  --accent-blue: #3b82f6;
+
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--background) 0%, #ecfdf5 100%);
+  /* Layered depth instead of a flat wash */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(52, 211, 153, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 85% 100%, rgba(59, 130, 246, 0.14) 0%, transparent 45%),
+    linear-gradient(135deg, var(--background) 0%, #e7fbf1 100%);
+  background-attachment: fixed;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Dark mode — remaps the theme tokens so existing rules adapt automatically */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #04120c;
+    --text-primary: #e6fff5;
+    --text-secondary: #6ee7b7;
+    --text-light: #9ca3af;
+    --surface: #0c1f18;
+    --surface-hover: #12281f;
+    --border: #1f4437;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --surface-gradient: linear-gradient(160deg, #0f241b 0%, #0a1c15 100%);
+    --card-shadow: 0 12px 44px -8px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(16, 185, 129, 0.16) 0%, transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+      linear-gradient(135deg, #04120c 0%, #071811 100%);
+  }
 }
 
 * {
@@ -1694,12 +1725,12 @@ body {
 
 /* Mode Select Screen */
 .mode-select {
-  background: var(--surface);
-  border-radius: 16px;
+  background: var(--surface-gradient);
+  border-radius: 20px;
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 8px 30px var(--shadow);
+  box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
   margin: 1rem;
 }
@@ -1740,17 +1771,33 @@ body {
 .mode-card {
   background: var(--surface-hover);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   text-align: center;
   width: 100%;
 }
 
 .mode-card:hover {
   border-color: var(--primary-green);
-  background: #f0fdf4;
+  background: var(--surface);
+  box-shadow: 0 8px 24px -6px var(--shadow);
+}
+
+.mode-card .mode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  margin-bottom: 0.25rem;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.mode-card.online .mode-icon {
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .mode-card.local .mode-icon {
@@ -1816,12 +1863,12 @@ body {
 
 /* Home Screen (Online) */
 .home-screen {
-  background: var(--surface);
-  border-radius: 16px;
+  background: var(--surface-gradient);
+  border-radius: 20px;
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 8px 30px var(--shadow);
+  box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
   margin: 1rem;
 }
@@ -1865,17 +1912,18 @@ body {
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   border: 2px solid transparent;
 }
 
 .home-btn.create-btn {
-  background: var(--primary-green);
+  background: linear-gradient(135deg, var(--primary-green-light) 0%, var(--primary-green-dark) 100%);
   color: white;
+  box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.5);
 }
 
 .home-btn.join-btn {
@@ -1891,6 +1939,56 @@ body {
 .home-info {
   color: var(--text-light);
   font-size: 0.9rem;
+}
+
+.home-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.resume-session-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--primary-green);
+  color: var(--text-secondary);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.connection-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: left;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  margin-bottom: 1.25rem;
+}
+
+.connection-error svg {
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .connection-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
 }
 
 /* Form Styles */

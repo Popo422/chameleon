@@ -15,23 +15,18 @@ export const useVoting = (roomId, playerId) => {
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
 
-  // Timer countdown
+  // Timer countdown. Keyed on whether the timer is active (not on the exact
+  // remaining value) so the interval is created once and ticks down via a
+  // functional update — avoids tearing down/recreating the interval every
+  // second (which caused drift).
+  const isTimerActive = timeRemaining !== null && timeRemaining > 0;
   useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
+    if (!isTimerActive) return;
 
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
-        if (prev <= 1000) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          return 0;
-        }
+        if (prev === null) return prev;
+        if (prev <= 1000) return 0;
         return prev - 1000;
       });
     }, 1000);
@@ -42,7 +37,7 @@ export const useVoting = (roomId, playerId) => {
         timerRef.current = null;
       }
     };
-  }, [timeRemaining]);
+  }, [isTimerActive]);
 
   /**
    * Start the voting phase (host only)
@@ -55,11 +50,12 @@ export const useVoting = (roomId, playerId) => {
     try {
       const voteEndTime = new Date(Date.now() + durationSeconds * 1000).toISOString();
 
-      // Reset all votes and update room status
-      const { error: resetError } = await supabase
-        .from('players')
-        .update({ vote_target_id: null })
-        .eq('room_id', roomId);
+      // Reset all votes via RPC — a plain room-wide UPDATE only clears the
+      // host's own row under the self-only players RLS policy, leaving stale
+      // previous-round votes on everyone else (which getResults would tally).
+      const { error: resetError } = await supabase.rpc('reset_room_players', {
+        p_room_id: roomId,
+      });
 
       if (resetError) throw resetError;
 
@@ -95,6 +91,11 @@ export const useVoting = (roomId, playerId) => {
   const castVote = useCallback(async (targetPlayerId) => {
     if (hasVoted) {
       return { success: false, error: 'Already voted' };
+    }
+
+    // Can't vote for yourself (the UI hides this, but guard it here too).
+    if (targetPlayerId === playerId) {
+      return { success: false, error: 'Cannot vote for yourself' };
     }
 
     // Check if voting is still active (prevent vote after timer expires)
@@ -164,14 +165,16 @@ export const useVoting = (roomId, playerId) => {
 
       if (playersError) throw playersError;
 
-      // Get room info for chameleon
+      // Get room info for chameleon. maybeSingle so a deleted room returns null
+      // (a clear error) instead of throwing a 406.
       const { data: room, error: roomError } = await supabase
         .from('rooms')
         .select('chameleon_id, secret_word')
         .eq('id', roomId)
-        .single();
+        .maybeSingle();
 
       if (roomError) throw roomError;
+      if (!room) throw new Error('Room no longer exists.');
 
       // Tally votes
       const voteCounts = {};
@@ -201,13 +204,21 @@ export const useVoting = (roomId, playerId) => {
 
       const chameleonInfo = players.find((p) => p.id === room.chameleon_id);
 
+      const isTie = accusedPlayers.length > 1;
+
       const results = {
         voteCounts,
         accusedPlayers: accusedInfo,
-        isTie: accusedPlayers.length > 1,
+        isTie,
         chameleonId: room.chameleon_id,
         chameleonName: chameleonInfo?.name || 'Unknown',
-        chameleonCaught: accusedPlayers.includes(room.chameleon_id),
+        // The chameleon is only caught if they are the SOLE most-accused player.
+        // A tie (even one that includes the chameleon) means they escaped — the
+        // group didn't decisively single them out. Also requires votes to exist.
+        chameleonCaught:
+          !isTie &&
+          maxVotes > 0 &&
+          accusedPlayers.includes(room.chameleon_id),
         secretWord: room.secret_word,
         totalVotes: Object.values(voteCounts).reduce((a, b) => a + b, 0),
         playerCount: players.length,
@@ -253,6 +264,18 @@ export const useVoting = (roomId, playerId) => {
   }, [roomId, getResults]);
 
   /**
+   * Restore this player's vote state (e.g. after a refresh mid-vote) from their
+   * persisted vote_target_id, so they can't vote again / change their vote.
+   * @param {string|null} existingVoteTargetId
+   */
+  const syncVote = useCallback((existingVoteTargetId) => {
+    if (existingVoteTargetId) {
+      setHasVoted(true);
+      setVotedFor(existingVoteTargetId);
+    }
+  }, []);
+
+  /**
    * Sync timer with server time
    * @param {string} voteEndTime - ISO string of when voting ends
    */
@@ -292,6 +315,7 @@ export const useVoting = (roomId, playerId) => {
     getResults,
     endVoting,
     syncTimer,
+    syncVote,
     resetVoting,
   };
 };

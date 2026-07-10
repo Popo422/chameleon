@@ -24,10 +24,27 @@ const VotingScreen = () => {
     voting,
     rejoinRoom,
     endVotingPhase,
+    forceEndVoting,
   } = useGame();
 
-  const { timeRemaining, hasVoted, votedFor, castVote, loading } = voting;
+  const { timeRemaining, hasVoted, votedFor, castVote, loading, syncTimer, syncVote } = voting;
   const { playClickSound, playSuccessSound } = useSounds();
+
+  // Sync the countdown from server time on mount / refresh / late-join.
+  // Without this, clients that didn't receive the live "voting started" event
+  // (refreshers, players who joined mid-vote) show a stuck --:-- timer.
+  useEffect(() => {
+    if (room?.status === 'voting' && room?.vote_end_time) {
+      syncTimer(room.vote_end_time);
+    }
+  }, [room?.status, room?.vote_end_time, syncTimer]);
+
+  // Restore our own vote on refresh so we can't vote twice / change it.
+  useEffect(() => {
+    if (currentPlayer?.vote_target_id) {
+      syncVote(currentPlayer.vote_target_id);
+    }
+  }, [currentPlayer?.vote_target_id, syncVote]);
 
   // Handle rejoining
   useEffect(() => {
@@ -54,10 +71,9 @@ const VotingScreen = () => {
     }
   }, [room, roomStatus, roomCode, navigate]);
 
-  // Auto-end voting when timer reaches 0 (only host triggers to prevent race conditions)
+  // Auto-end voting when timer reaches 0 (host triggers first to avoid races)
   useEffect(() => {
     if (timeRemaining === 0 && roomStatus === 'voting' && isHost) {
-      // Only host ends voting to prevent multiple clients from calling simultaneously
       const timeout = setTimeout(() => {
         if (roomStatus === 'voting') {
           endVotingPhase();
@@ -67,6 +83,25 @@ const VotingScreen = () => {
       return () => clearTimeout(timeout);
     }
   }, [timeRemaining, roomStatus, endVotingPhase, isHost]);
+
+  // Fallback: if the host is gone/disconnected and never ends voting, a single
+  // deterministic non-host (lowest player id) ends it so the room isn't stuck
+  // in 'voting' forever. Fires after a grace period past the host's window.
+  const backupEnder = !isHost &&
+    players.length > 0 &&
+    [...players].sort((a, b) => a.id.localeCompare(b.id))[0]?.id === currentPlayer?.id;
+
+  useEffect(() => {
+    if (timeRemaining === 0 && roomStatus === 'voting' && backupEnder) {
+      const timeout = setTimeout(() => {
+        if (roomStatus === 'voting') {
+          forceEndVoting();
+        }
+      }, 3000); // give the host time to end it first
+
+      return () => clearTimeout(timeout);
+    }
+  }, [timeRemaining, roomStatus, backupEnder, forceEndVoting]);
 
   const formatTime = (ms) => {
     if (ms === null) return '--:--';

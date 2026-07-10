@@ -69,6 +69,12 @@ export const GameProvider = ({ children }) => {
   const handleRoomUpdate = useCallback((newRoom) => {
     setRoom(newRoom);
 
+    // Keep the language flag in sync with the room (e.g. the host changed it, or
+    // we were promoted to host) so startGame doesn't send a stale value.
+    if (typeof newRoom.is_filipino === 'boolean') {
+      setIsFilipino(newRoom.is_filipino);
+    }
+
     // Sync voting timer
     if (newRoom.status === 'voting' && newRoom.vote_end_time) {
       votingRef.current.syncTimer(newRoom.vote_end_time);
@@ -82,12 +88,18 @@ export const GameProvider = ({ children }) => {
     });
   }, []);
 
+  // Set while WE are voluntarily leaving, so our own DELETE event isn't
+  // mistaken for being kicked.
+  const isLeavingRef = useRef(false);
+
   const handlePlayerLeave = useCallback((leftPlayer) => {
     setPlayers((prev) => prev.filter((p) => p.id !== leftPlayer.id));
 
-    // Check if current player was kicked (by comparing auth_user_id or stored session)
+    // Check if current player was removed (by auth_user_id or stored session)
     const storedSession = getStoredSession();
-    if (leftPlayer.auth_user_id === userId || leftPlayer.id === storedSession?.playerId) {
+    const itsUs = leftPlayer.auth_user_id === userId || leftPlayer.id === storedSession?.playerId;
+    if (itsUs && !isLeavingRef.current) {
+      // Removed by someone else → we were kicked.
       setRoom(null);
       setPlayers([]);
       setCurrentPlayer(null);
@@ -105,8 +117,30 @@ export const GameProvider = ({ children }) => {
     if (updatedPlayer.auth_user_id === userId) {
       setCurrentPlayer(updatedPlayer);
       setHasRevealed(updatedPlayer.has_revealed);
+      // Keep host powers in sync — e.g. when we're promoted to host after the
+      // previous host leaves, our players row gets is_host=true via realtime.
+      setIsHost(updatedPlayer.is_host);
     }
   }, [userId]);
+
+  // Re-fetch authoritative room + players once the realtime channel is live,
+  // to recover any joins/leaves/updates that happened during the subscribe gap.
+  const roomCodeRef = useRef(null);
+  roomCodeRef.current = room?.code;
+  const handleSubscribed = useCallback(async () => {
+    const code = roomCodeRef.current;
+    if (!code || !userId) return;
+    const { room: freshRoom, players: freshPlayers, currentPlayer: me, error: err } =
+      await getRoomByCode(userId, code);
+    if (err) return;
+    setPlayers(freshPlayers);
+    setRoom((prev) => (prev ? { ...prev, ...freshRoom } : freshRoom));
+    if (me) {
+      setCurrentPlayer(me);
+      setIsHost(me.is_host);
+      setHasRevealed(me.has_revealed);
+    }
+  }, [userId, getRoomByCode]);
 
   // Setup realtime subscriptions
   useRealtime(room?.id, {
@@ -114,6 +148,7 @@ export const GameProvider = ({ children }) => {
     onPlayerJoin: handlePlayerJoin,
     onPlayerLeave: handlePlayerLeave,
     onPlayerUpdate: handlePlayerUpdate,
+    onSubscribed: handleSubscribed,
   });
 
   // Setup presence tracking
@@ -126,6 +161,17 @@ export const GameProvider = ({ children }) => {
       setAllPlayersRevealed(allRevealed);
     }
   }, [players]);
+
+  // Best-effort: mark ourselves disconnected when the tab closes/reloads, so
+  // other players can see who dropped. (updateConnectionStatus is fire-and-forget.)
+  useEffect(() => {
+    if (!currentPlayer?.id) return;
+    const markOffline = () => {
+      updateConnectionStatus(currentPlayer.id, false);
+    };
+    window.addEventListener('pagehide', markOffline);
+    return () => window.removeEventListener('pagehide', markOffline);
+  }, [currentPlayer?.id, updateConnectionStatus]);
 
   // Check chameleon status when room/player changes
   useEffect(() => {
@@ -262,6 +308,8 @@ export const GameProvider = ({ children }) => {
   const leaveRoom = useCallback(async () => {
     if (!currentPlayer) return;
 
+    // Mark that our own imminent DELETE is a voluntary leave, not a kick.
+    isLeavingRef.current = true;
     setLoading(true);
     await leaveRoomApi(currentPlayer.id);
 
@@ -279,6 +327,8 @@ export const GameProvider = ({ children }) => {
     clearStoredSession();
 
     navigate('/', { replace: true });
+    // Reset the flag shortly after, once the DELETE event has been processed.
+    setTimeout(() => { isLeavingRef.current = false; }, 2000);
   }, [currentPlayer, leaveRoomApi, navigate, voting]);
 
   /**
@@ -325,6 +375,9 @@ export const GameProvider = ({ children }) => {
     if (result.success) {
       setHasRevealed(false);
       setAllPlayersRevealed(false);
+      // Clear last round's revealed flags locally too — don't wait on realtime
+      // UPDATE events, or allPlayersRevealed can stay stuck true.
+      setPlayers((prev) => prev.map((p) => ({ ...p, has_revealed: false, vote_target_id: null })));
       voting.resetVoting();
     }
 
@@ -361,6 +414,15 @@ export const GameProvider = ({ children }) => {
   }, [isHost, voting]);
 
   /**
+   * Fallback end-of-voting available to any player. Used when the host is
+   * absent/disconnected so the room doesn't get stuck in 'voting' forever.
+   * The DB write is permitted by the "Players can end voting" RLS policy.
+   */
+  const forceEndVoting = useCallback(async () => {
+    return await voting.endVoting();
+  }, [voting]);
+
+  /**
    * Go back to lobby for new round
    */
   const newRound = useCallback(async () => {
@@ -375,16 +437,19 @@ export const GameProvider = ({ children }) => {
       vote_end_time: null,
     });
 
-    // Reset all players
-    const { error: resetError } = await supabase
-      .from('players')
-      .update({ has_revealed: false, vote_target_id: null })
-      .eq('room_id', room.id);
+    // Reset all players via RPC — a room-wide UPDATE only clears the host's own
+    // row under the self-only players RLS policy.
+    const { error: resetError } = await supabase.rpc('reset_room_players', {
+      p_room_id: room.id,
+    });
 
     if (!resetError) {
       setHasRevealed(false);
       setAllPlayersRevealed(false);
       setIsChameleon(false);
+      // Reset revealed/vote flags locally so a new round doesn't inherit the
+      // previous round's "everyone revealed" state before UPDATE events land.
+      setPlayers((prev) => prev.map((p) => ({ ...p, has_revealed: false, vote_target_id: null })));
       voting.resetVoting();
     }
 
@@ -431,6 +496,7 @@ export const GameProvider = ({ children }) => {
     voting,
     startVotingPhase,
     endVotingPhase,
+    forceEndVoting,
     newRound,
 
     // Kicked state
