@@ -14,9 +14,16 @@ import { test, expect } from '@playwright/test';
 test.beforeAll(async ({ request }) => {
   const url = process.env.VITE_SUPABASE_URL;
   if (!url) return;
+  const anon = process.env.VITE_SUPABASE_ANON_KEY;
   let ok = false;
   try {
-    const res = await request.get(`${url}/auth/v1/health`, { timeout: 10_000 });
+    // Health endpoint needs the apikey; hit REST root with it when available.
+    const res = anon
+      ? await request.get(`${url}/rest/v1/rooms?select=id&limit=1`, {
+          headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+          timeout: 10_000,
+        })
+      : await request.get(`${url}/auth/v1/health`, { timeout: 10_000 });
     ok = res.ok();
   } catch {
     ok = false;

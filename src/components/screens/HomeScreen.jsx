@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { Users, Plus, LogIn, WifiOff, ArrowRight } from 'lucide-react';
+import { Users, Plus, LogIn, WifiOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSounds } from '../../hooks/useSounds';
@@ -76,6 +76,17 @@ const HomeScreen = () => {
       transition={{ duration: 0.5 }}
     >
       <div className="home-content">
+        <button
+          className="back-btn"
+          onClick={() => {
+            playClickSound();
+            navigate('/');
+          }}
+        >
+          <ArrowLeft size={18} />
+          <span>Back</span>
+        </button>
+
         <motion.div
           className="home-header"
           initial={{ y: -30, opacity: 0 }}
